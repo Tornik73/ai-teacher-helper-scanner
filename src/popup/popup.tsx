@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
+import Select from "react-select";
 import {
   FlashcardSet,
   FlashcardPair,
@@ -273,22 +274,56 @@ const Popup: React.FC = () => {
 
           <div className="section">
             <div className="section-title">🎨 Template Selection</div>
-            <select
-              className="select-field"
-              value={state.selectedTemplate}
-              onChange={(e) =>
-                setState((prev) => ({
-                  ...prev,
-                  selectedTemplate: e.target.value as WordwallTemplateType,
-                }))
+            <Select<{ value: WordwallTemplateType; label: string }>
+              options={templates.map((template) => ({
+                value: template.type as WordwallTemplateType,
+                label: `${template.name} - ${template.description}`,
+              }))}
+              value={
+                templates.find((t) => t.type === state.selectedTemplate)
+                  ? {
+                      value: state.selectedTemplate,
+                      label: `${templates.find((t) => t.type === state.selectedTemplate)?.name} - ${templates.find((t) => t.type === state.selectedTemplate)?.description}`,
+                    }
+                  : null
               }
-            >
-              {templates.map((template) => (
-                <option key={template.type} value={template.type}>
-                  {template.name} - {template.description}
-                </option>
-              ))}
-            </select>
+              onChange={(option) => {
+                if (option) {
+                  setState((prev) => ({
+                    ...prev,
+                    selectedTemplate: option.value,
+                  }));
+                }
+              }}
+              isSearchable
+              isClearable={false}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: "36px",
+                  borderColor: "#ddd",
+                  borderRadius: "4px",
+                  fontSize: "13px",
+                }),
+                menu: (base) => ({
+                  ...base,
+                  fontSize: "13px",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }),
+                option: (base, { isSelected, isFocused }) => ({
+                  ...base,
+                  backgroundColor: isSelected
+                    ? "#4CAF50"
+                    : isFocused
+                      ? "#f0f0f0"
+                      : "white",
+                  color: isSelected ? "white" : "black",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                }),
+              }}
+            />
           </div>
 
           <button

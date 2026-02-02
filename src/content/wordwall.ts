@@ -285,20 +285,34 @@ async function tryPopulateMatchingPair(cards: { term: string; definition: string
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
-    // Get all items (rows) in the matching editor
-    const getMatchItems = () =>
-      Array.from(
-        document.querySelectorAll(
-          ".item.js-item.item-collection .item.js-item.no-select",
-        ),
-      ) as HTMLElement[];
+    // Find the main item collection container
+    const itemContainer = document.querySelector(
+      ".item.js-item.item-collection .js-editor-child-items",
+    ) as HTMLElement | null;
 
-    // Helper to click "Add an item" button
+    if (!itemContainer) {
+      debug("Could not find item container");
+      return false;
+    }
+
+    // Get direct child items (excluding the add button)
+    const getMatchItems = () => {
+      const children = Array.from(itemContainer.children) as HTMLElement[];
+      return children.filter(
+        (el) =>
+          el.classList.contains("js-item") &&
+          el.classList.contains("no-select") &&
+          !el.classList.contains("editor-add-item"),
+      );
+    };
+
+    // Helper to click "Add an item" button - more robust
     const clickAddItem = () => {
-      const btn = document.querySelector(
+      const btn = itemContainer.querySelector(
         ".editor-add-item.js-editor-add-item",
       ) as HTMLElement | null;
       if (btn) {
+        debug("Clicking add item button");
         btn.click();
         return true;
       }
@@ -308,16 +322,19 @@ async function tryPopulateMatchingPair(cards: { term: string; definition: string
     for (let i = 0; i < cards.length; i++) {
       // For subsequent items, click Add an item first
       if (i > 0) {
+        debug("Adding item", i + 1);
         const added = clickAddItem();
         debug("Click Add an item ->", added);
-        await sleep(300);
+        await sleep(500); // increased wait time
       }
 
       // Re-query items
       const items = getMatchItems();
+      debug("Current item count:", items.length, "target:", i + 1);
+
       const currentItem = items[i];
       if (!currentItem) {
-        debug("No match item found for index", i);
+        debug("No match item found for index", i, "total items:", items.length);
         continue;
       }
 
@@ -338,7 +355,8 @@ async function tryPopulateMatchingPair(cards: { term: string; definition: string
       if (keywordInput) {
         keywordInput.textContent = cards[i].term;
         dispatchInput(keywordInput);
-        await sleep(80);
+        debug("Set keyword:", cards[i].term);
+        await sleep(100);
       }
 
       // Set definition (right side)
@@ -348,10 +366,11 @@ async function tryPopulateMatchingPair(cards: { term: string; definition: string
       if (definitionInput) {
         definitionInput.textContent = cards[i].definition;
         dispatchInput(definitionInput);
-        await sleep(80);
+        debug("Set definition:", cards[i].definition);
+        await sleep(100);
       }
 
-      await sleep(200);
+      await sleep(300);
     }
 
     debug("Finished populating", cards.length, "matching pairs");
