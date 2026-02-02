@@ -202,11 +202,11 @@ async function tryPopulateQuiz(cards: { term: string; definition: string }[]) {
       // Build answers: correct + 3 random distractors from ALL definitions
       const allDefinitions = cards.map((c) => c.definition);
       const otherDefinitions = allDefinitions.filter((_, idx) => idx !== qi);
-      
+
       // Randomly select 3 distractors from all other definitions
       const selectedDistracts: string[] = [];
       const availableIndices = otherDefinitions.map((_, i) => i);
-      
+
       for (let d = 0; d < Math.min(3, otherDefinitions.length); d++) {
         const randIdx = Math.floor(Math.random() * availableIndices.length);
         const chosenIndex = availableIndices[randIdx];
@@ -215,10 +215,7 @@ async function tryPopulateQuiz(cards: { term: string; definition: string }[]) {
         availableIndices.splice(randIdx, 1);
       }
 
-      const answers = shuffle([
-        cards[qi].definition,
-        ...selectedDistracts,
-      ]);
+      const answers = shuffle([cards[qi].definition, ...selectedDistracts]);
 
       // Ensure there are at least 4 answer boxes
       let answerBoxes = Array.from(
@@ -281,7 +278,9 @@ async function tryPopulateQuiz(cards: { term: string; definition: string }[]) {
   }
 }
 
-async function tryPopulateMatchingPair(cards: { term: string; definition: string }[]) {
+async function tryPopulateMatchingPair(
+  cards: { term: string; definition: string }[],
+) {
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {

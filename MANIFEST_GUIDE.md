@@ -11,9 +11,9 @@
 "manifest_version": 3,
 
 // User-facing metadata
-"name": "Quizlet to Wordwall Exporter",
+"name": "AI Scanner",
 "version": "0.1.0",
-"description": "Export Quizlet flashcards to Wordwall templates",
+"description": "Chrome extension that helps teachers",
 
 // Extension icon shown in toolbar
 "icons": {

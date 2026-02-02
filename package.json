@@ -1,7 +1,7 @@
 {
-  "name": "quizlet-wordwall-extension",
+  "name": "ai-scanner-extension",
   "version": "0.1.0",
-  "description": "Chrome extension to export Quizlet flashcards to Wordwall templates",
+  "description": "Chrome extension that helps teachers",
   "private": true,
   "scripts": {
     "dev": "webpack --mode development --watch",

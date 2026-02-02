@@ -23,7 +23,7 @@ interface PopupState {
   success: string | null;
   selectedTemplate: WordwallTemplateType;
   exporting: boolean;
-  reverseMode: boolean;
+  reversedCardIds: Set<string>;
 }
 
 const Popup: React.FC = () => {
@@ -35,7 +35,7 @@ const Popup: React.FC = () => {
     success: null,
     selectedTemplate: "quiz",
     exporting: false,
-    reverseMode: false,
+    reversedCardIds: new Set(),
   });
 
   const [newTerm, setNewTerm] = useState("");
@@ -154,14 +154,17 @@ const Popup: React.FC = () => {
     setState((prev) => ({ ...prev, exporting: true, error: null }));
 
     try {
-      // Apply reverse mode if enabled
-      const cardsToExport = state.reverseMode
-        ? state.cards.map((card) => ({
+      // Apply reverse mode to individual cards
+      const cardsToExport = state.cards.map((card) => {
+        if (state.reversedCardIds.has(card.id)) {
+          return {
             ...card,
             term: card.definition,
             definition: card.term,
-          }))
-        : state.cards;
+          };
+        }
+        return card;
+      });
 
       // Save cards to background storage
       await chrome.runtime.sendMessage({
@@ -253,6 +256,18 @@ const Popup: React.FC = () => {
                   key={card.id}
                   card={card}
                   index={index}
+                  isReversed={state.reversedCardIds.has(card.id)}
+                  onReverse={() => {
+                    setState((prev) => {
+                      const newSet = new Set(prev.reversedCardIds);
+                      if (newSet.has(card.id)) {
+                        newSet.delete(card.id);
+                      } else {
+                        newSet.add(card.id);
+                      }
+                      return { ...prev, reversedCardIds: newSet };
+                    });
+                  }}
                   onRemove={() => handleRemoveCard(index)}
                   onEdit={(term, definition) =>
                     handleEditCard(index, term, definition)
@@ -285,7 +300,11 @@ const Popup: React.FC = () => {
 
           <div className="section">
             <div className="section-title">🎨 Template Selection</div>
-            <Select<{ value: WordwallTemplateType; label: string; image?: string }>
+            <Select<{
+              value: WordwallTemplateType;
+              label: string;
+              image?: string;
+            }>
               options={templates.map((template) => ({
                 value: template.type as WordwallTemplateType,
                 label: `${template.name} - ${template.description}`,
@@ -296,7 +315,9 @@ const Popup: React.FC = () => {
                   ? {
                       value: state.selectedTemplate,
                       label: `${templates.find((t) => t.type === state.selectedTemplate)?.name} - ${templates.find((t) => t.type === state.selectedTemplate)?.description}`,
-                      image: templates.find((t) => t.type === state.selectedTemplate)?.image,
+                      image: templates.find(
+                        (t) => t.type === state.selectedTemplate,
+                      )?.image,
                     }
                   : null
               }
@@ -311,7 +332,9 @@ const Popup: React.FC = () => {
               isSearchable
               isClearable={false}
               formatOptionLabel={(option) => (
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
                   {option.image && (
                     <img
                       src={chrome.runtime.getURL(option.image)}
@@ -358,21 +381,6 @@ const Popup: React.FC = () => {
             />
           </div>
 
-          <div className="section">
-            <div className="section-title">🔄 Reverse Mode</div>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={state.reverseMode}
-                onChange={(e) => setState((prev) => ({ ...prev, reverseMode: e.target.checked }))}
-                style={{ cursor: "pointer", width: "16px", height: "16px" }}
-              />
-              <span style={{ fontSize: "13px" }}>
-                Export as definition → term (reversed)
-              </span>
-            </label>
-          </div>
-
           <button
             className="btn-primary"
             onClick={handleExport}
@@ -415,15 +423,19 @@ const Popup: React.FC = () => {
 interface CardItemProps {
   card: FlashcardPair;
   index: number;
+  isReversed: boolean;
   onRemove: () => void;
   onEdit: (term: string, definition: string) => void;
+  onReverse: () => void;
 }
 
 const CardItem: React.FC<CardItemProps> = ({
   card,
   index,
+  isReversed,
   onRemove,
   onEdit,
+  onReverse,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTerm, setEditedTerm] = useState(card.term);
@@ -468,13 +480,32 @@ const CardItem: React.FC<CardItemProps> = ({
     );
   }
 
+  // Display reversed if isReversed is true
+  const displayTerm = isReversed ? card.definition : card.term;
+  const displayDefinition = isReversed ? card.term : card.definition;
+
   return (
     <div className="card-item">
       <div className="card-pair">
-        <div className="card-term">{card.term}</div>
-        <div className="card-definition">{card.definition}</div>
+        <div className="card-term" style={{ opacity: isReversed ? 0.6 : 1 }}>
+          {displayTerm}
+        </div>
+        <div className="card-definition" style={{ opacity: isReversed ? 0.6 : 1 }}>
+          {displayDefinition}
+        </div>
       </div>
       <div className="card-actions">
+        <button
+          className="btn-small"
+          onClick={onReverse}
+          title={isReversed ? "Undo reverse" : "Reverse this card"}
+          style={{
+            backgroundColor: isReversed ? "#FF9800" : "transparent",
+            color: isReversed ? "white" : "inherit",
+          }}
+        >
+          🔄
+        </button>
         <button className="btn-small" onClick={() => setIsEditing(true)}>
           ✏️
         </button>
