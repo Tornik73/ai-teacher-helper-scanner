@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Quizlet to Wordwall Exporter",
+  "version": "0.1.0",
+  "description": "Export Quizlet flashcards to Wordwall templates",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://quizlet.com/*", "https://wordwall.net/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://quizlet.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://wordwall.net/create/*"],
+      "js": ["wordwall.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Export to Wordwall"
+  },
+  "icons": {
+    "16": "images/icon-16.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  }
+}
