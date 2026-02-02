@@ -23,6 +23,7 @@ interface PopupState {
   success: string | null;
   selectedTemplate: WordwallTemplateType;
   exporting: boolean;
+  reverseMode: boolean;
 }
 
 const Popup: React.FC = () => {
@@ -34,6 +35,7 @@ const Popup: React.FC = () => {
     success: null,
     selectedTemplate: "quiz",
     exporting: false,
+    reverseMode: false,
   });
 
   const [newTerm, setNewTerm] = useState("");
@@ -152,19 +154,28 @@ const Popup: React.FC = () => {
     setState((prev) => ({ ...prev, exporting: true, error: null }));
 
     try {
+      // Apply reverse mode if enabled
+      const cardsToExport = state.reverseMode
+        ? state.cards.map((card) => ({
+            ...card,
+            term: card.definition,
+            definition: card.term,
+          }))
+        : state.cards;
+
       // Save cards to background storage
       await chrome.runtime.sendMessage({
         action: "update-cards",
         payload: {
           title: state.title,
           source: "quizlet",
-          cards: state.cards,
+          cards: cardsToExport,
         },
       } as ExtensionMessage);
 
       // Export to Wordwall
       await WordwallExporter.exportToWordwall(
-        state.cards,
+        cardsToExport,
         state.title,
         state.selectedTemplate,
       );
@@ -172,7 +183,7 @@ const Popup: React.FC = () => {
       setState((prev) => ({
         ...prev,
         exporting: false,
-        success: `Exported ${state.cards.length} cards to Wordwall`,
+        success: `Exported ${cardsToExport.length} cards to Wordwall`,
       }));
 
       // Clear success message after 2 seconds
@@ -345,6 +356,21 @@ const Popup: React.FC = () => {
                 }),
               }}
             />
+          </div>
+
+          <div className="section">
+            <div className="section-title">🔄 Reverse Mode</div>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={state.reverseMode}
+                onChange={(e) => setState((prev) => ({ ...prev, reverseMode: e.target.checked }))}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <span style={{ fontSize: "13px" }}>
+                Export as definition → term (reversed)
+              </span>
+            </label>
           </div>
 
           <button
