@@ -248,7 +248,55 @@ const Popup: React.FC = () => {
           <div className="section">
             <div className="section-title">
               <span>🎯 Detected Cards</span>
-              <span className="word-count">{state.cards.length} words</span>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span className="word-count">{state.cards.length} words</span>
+                <button
+                  className="btn-small"
+                  onClick={() => {
+                    setState((prev) => {
+                      const allReversed =
+                        prev.reversedCardIds.size === prev.cards.length;
+                      if (allReversed) {
+                        return { ...prev, reversedCardIds: new Set() };
+                      }
+                      const newSet = new Set(prev.cards.map((card) => card.id));
+                      return { ...prev, reversedCardIds: newSet };
+                    });
+                  }}
+                  title={
+                    state.reversedCardIds.size === state.cards.length
+                      ? "Unreverse all word ↔ translation"
+                      : "Reverse all word ↔ translation (swap term and definition for every card)"
+                  }
+                  style={{
+                    fontSize: "12px",
+                    padding: "6px 10px",
+                    backgroundColor:
+                      state.reversedCardIds.size === state.cards.length
+                        ? "#FF9800"
+                        : "#e3f2fd",
+                    color:
+                      state.reversedCardIds.size === state.cards.length
+                        ? "white"
+                        : "#1565c0",
+                    border: "1px solid #90caf9",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                  }}
+                >
+                  {state.reversedCardIds.size === state.cards.length
+                    ? "↩️ Unreverse All"
+                    : "🔄 Reverse All (word ↔ translation)"}
+                </button>
+              </div>
             </div>
             <div className="card-list">
               {state.cards.map((card, index) => (
@@ -257,17 +305,6 @@ const Popup: React.FC = () => {
                   card={card}
                   index={index}
                   isReversed={state.reversedCardIds.has(card.id)}
-                  onReverse={() => {
-                    setState((prev) => {
-                      const newSet = new Set(prev.reversedCardIds);
-                      if (newSet.has(card.id)) {
-                        newSet.delete(card.id);
-                      } else {
-                        newSet.add(card.id);
-                      }
-                      return { ...prev, reversedCardIds: newSet };
-                    });
-                  }}
                   onRemove={() => handleRemoveCard(index)}
                   onEdit={(term, definition) =>
                     handleEditCard(index, term, definition)
@@ -314,7 +351,13 @@ const Popup: React.FC = () => {
                 templates.find((t) => t.type === state.selectedTemplate)
                   ? {
                       value: state.selectedTemplate,
-                      label: `${templates.find((t) => t.type === state.selectedTemplate)?.name} - ${templates.find((t) => t.type === state.selectedTemplate)?.description}`,
+                      label: `${
+                        templates.find((t) => t.type === state.selectedTemplate)
+                          ?.name
+                      } - ${
+                        templates.find((t) => t.type === state.selectedTemplate)
+                          ?.description
+                      }`,
                       image: templates.find(
                         (t) => t.type === state.selectedTemplate,
                       )?.image,
@@ -381,28 +424,30 @@ const Popup: React.FC = () => {
             />
           </div>
 
-          <button
-            className="btn-primary"
-            onClick={handleExport}
-            disabled={state.cards.length === 0 || state.exporting}
-          >
-            {state.exporting ? (
-              <>
-                <span className="spinner"></span> Exporting...
-              </>
-            ) : (
-              `✨ Export ${state.cards.length} Cards to Wordwall`
-            )}
-          </button>
+          <div>
+            <button
+              className="btn-primary"
+              onClick={handleExport}
+              disabled={state.cards.length === 0 || state.exporting}
+            >
+              {state.exporting ? (
+                <>
+                  <span className="spinner"></span> Exporting...
+                </>
+              ) : (
+                `✨ Export ${state.cards.length} Cards to Wordwall`
+              )}
+            </button>
 
-          <button
-            className="btn-secondary"
-            onClick={extractCards}
-            disabled={state.exporting}
-            style={{ marginTop: "8px" }}
-          >
-            🔄 Re-extract from Page
-          </button>
+            <button
+              className="btn-secondary"
+              onClick={extractCards}
+              disabled={state.exporting}
+              style={{ marginTop: "8px" }}
+            >
+              🔄 Re-extract from Page
+            </button>
+          </div>
         </>
       ) : (
         <div className="empty-state">
@@ -426,7 +471,6 @@ interface CardItemProps {
   isReversed: boolean;
   onRemove: () => void;
   onEdit: (term: string, definition: string) => void;
-  onReverse: () => void;
 }
 
 const CardItem: React.FC<CardItemProps> = ({
@@ -435,7 +479,6 @@ const CardItem: React.FC<CardItemProps> = ({
   isReversed,
   onRemove,
   onEdit,
-  onReverse,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTerm, setEditedTerm] = useState(card.term);
@@ -490,22 +533,14 @@ const CardItem: React.FC<CardItemProps> = ({
         <div className="card-term" style={{ opacity: isReversed ? 0.6 : 1 }}>
           {displayTerm}
         </div>
-        <div className="card-definition" style={{ opacity: isReversed ? 0.6 : 1 }}>
+        <div
+          className="card-definition"
+          style={{ opacity: isReversed ? 0.6 : 1 }}
+        >
           {displayDefinition}
         </div>
       </div>
       <div className="card-actions">
-        <button
-          className="btn-small"
-          onClick={onReverse}
-          title={isReversed ? "Undo reverse" : "Reverse this card"}
-          style={{
-            backgroundColor: isReversed ? "#FF9800" : "transparent",
-            color: isReversed ? "white" : "inherit",
-          }}
-        >
-          🔄
-        </button>
         <button className="btn-small" onClick={() => setIsEditing(true)}>
           ✏️
         </button>
