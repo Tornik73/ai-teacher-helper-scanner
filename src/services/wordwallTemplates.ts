@@ -32,6 +32,7 @@ export class QuizTemplate implements IExportTemplate {
       templateId: 5,
       name: "Quiz",
       description: "Multiple choice quiz with one correct answer",
+      image: "images/quiz.png",
     };
   }
 
@@ -72,6 +73,7 @@ export class FindMatchTemplate implements IExportTemplate {
       templateId: 46,
       name: "Find the Match",
       description: "Find matching pairs of keywords and definitions",
+      image: "images/find-match.png",
     };
   }
 
@@ -100,6 +102,7 @@ export class MatchUpTemplate implements IExportTemplate {
       templateId: 3,
       name: "Match Up",
       description: "Match keywords with their definitions",
+      image: "images/match-up.png",
     };
   }
 

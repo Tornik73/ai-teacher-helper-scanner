@@ -36,6 +36,7 @@ export interface IExportTemplate {
     templateId: number;
     name: string;
     description: string;
+    image?: string;
   };
 }
 

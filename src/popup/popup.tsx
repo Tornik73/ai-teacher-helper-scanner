@@ -274,16 +274,18 @@ const Popup: React.FC = () => {
 
           <div className="section">
             <div className="section-title">🎨 Template Selection</div>
-            <Select<{ value: WordwallTemplateType; label: string }>
+            <Select<{ value: WordwallTemplateType; label: string; image?: string }>
               options={templates.map((template) => ({
                 value: template.type as WordwallTemplateType,
                 label: `${template.name} - ${template.description}`,
+                image: template.image,
               }))}
               value={
                 templates.find((t) => t.type === state.selectedTemplate)
                   ? {
                       value: state.selectedTemplate,
                       label: `${templates.find((t) => t.type === state.selectedTemplate)?.name} - ${templates.find((t) => t.type === state.selectedTemplate)?.description}`,
+                      image: templates.find((t) => t.type === state.selectedTemplate)?.image,
                     }
                   : null
               }
@@ -297,10 +299,29 @@ const Popup: React.FC = () => {
               }}
               isSearchable
               isClearable={false}
+              formatOptionLabel={(option) => (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {option.image && (
+                    <img
+                      src={chrome.runtime.getURL(option.image)}
+                      alt={option.label}
+                      style={{ width: "40px", height: "40px" }}
+                    />
+                  )}
+                  <div>
+                    <div style={{ fontWeight: "600", fontSize: "13px" }}>
+                      {option.label.split(" - ")[0]}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#666" }}>
+                      {option.label.split(" - ")[1]}
+                    </div>
+                  </div>
+                </div>
+              )}
               styles={{
                 control: (base) => ({
                   ...base,
-                  minHeight: "36px",
+                  minHeight: "50px",
                   borderColor: "#ddd",
                   borderRadius: "4px",
                   fontSize: "13px",
@@ -319,7 +340,7 @@ const Popup: React.FC = () => {
                       ? "#f0f0f0"
                       : "white",
                   color: isSelected ? "white" : "black",
-                  padding: "8px 12px",
+                  padding: "10px 12px",
                   cursor: "pointer",
                 }),
               }}
