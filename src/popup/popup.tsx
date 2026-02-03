@@ -154,6 +154,7 @@ const Popup: React.FC = () => {
     setState((prev) => ({ ...prev, exporting: true, error: null }));
 
     try {
+      console.log("[Popup] Starting export...");
       // Apply reverse mode to individual cards
       const cardsToExport = state.cards.map((card) => {
         if (state.reversedCardIds.has(card.id)) {
@@ -166,7 +167,10 @@ const Popup: React.FC = () => {
         return card;
       });
 
+      console.log("[Popup] Cards to export:", cardsToExport);
+
       // Save cards to background storage
+      console.log("[Popup] Updating background storage...");
       await chrome.runtime.sendMessage({
         action: "update-cards",
         payload: {
@@ -175,13 +179,16 @@ const Popup: React.FC = () => {
           cards: cardsToExport,
         },
       } as ExtensionMessage);
+      console.log("[Popup] Background storage updated");
 
       // Export to Wordwall
+      console.log("[Popup] Calling WordwallExporter.exportToWordwall...");
       await WordwallExporter.exportToWordwall(
         cardsToExport,
         state.title,
         state.selectedTemplate,
       );
+      console.log("[Popup] WordwallExporter completed");
 
       setState((prev) => ({
         ...prev,
@@ -194,6 +201,7 @@ const Popup: React.FC = () => {
         setState((prev) => ({ ...prev, success: null }));
       }, 2000);
     } catch (error) {
+      console.error("[Popup] Export error:", error);
       setState((prev) => ({
         ...prev,
         exporting: false,

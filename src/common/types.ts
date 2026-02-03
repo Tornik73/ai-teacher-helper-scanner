@@ -43,6 +43,8 @@ export interface ExtensionMessage {
     | "export-wordwall"
     | "get-cards"
     | "update-cards"
-    | "initialize";
-  payload?: Record<string, unknown>;
+    | "initialize"
+    | "get-export-data"
+    | "store-export-data";
+  payload?: Record<string, unknown> | string;
 }

@@ -46,6 +46,8 @@ async function handleMessage(
 ) {
   const tabId = sender.tab?.id;
 
+  console.log("[Background] Received message:", message.action, "from tab:", tabId);
+
   try {
     switch (message.action) {
       case "extract-cards": {
@@ -102,6 +104,87 @@ async function handleMessage(
         });
 
         sendResponse({ success: true });
+        break;
+      }
+
+      case "get-export-data": {
+        const sessionKey = message.payload as string;
+        console.log("[Background] get-export-data for key:", sessionKey);
+        if (!sessionKey) {
+          console.log("[Background] No sessionKey provided");
+          sendResponse({ success: false, error: "No sessionKey provided" });
+          break;
+        }
+
+        try {
+          const result = await chrome.storage.local.get(sessionKey);
+          const entry = result[sessionKey];
+          console.log("[Background] Storage lookup result:", { sessionKey, found: !!entry });
+          if (entry && entry.data) {
+            console.log("[Background] Found data, returning");
+            sendResponse({ success: true, data: entry.data });
+          } else {
+            console.log("[Background] No data found in storage");
+            sendResponse({ success: false, error: "No data found in storage" });
+          }
+        } catch (error) {
+          console.error("[Background] Error retrieving from storage:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : "Storage error",
+          });
+        }
+        break;
+      }
+
+      case "store-export-data": {
+        const payload = message.payload as unknown as {
+          sessionKey: string;
+          data: unknown;
+          formatted: unknown;
+          templateId: number;
+        };
+
+        console.log("[Background] store-export-data payload:", {
+          sessionKey: payload?.sessionKey,
+          hasData: !!payload?.data,
+          hasFormatted: !!payload?.formatted,
+          templateId: payload?.templateId,
+        });
+
+        if (!payload || !payload.sessionKey) {
+          console.log("[Background] Invalid payload - missing sessionKey");
+          sendResponse({
+            success: false,
+            error: "No sessionKey in payload",
+          });
+          break;
+        }
+
+        try {
+          console.log(
+            "[Background] Storing export data with key:",
+            payload.sessionKey,
+          );
+          await chrome.storage.local.set({
+            [payload.sessionKey]: {
+              data: payload.data,
+              formatted: payload.formatted,
+              templateId: payload.templateId,
+            },
+          });
+          console.log(
+            "[Background] Successfully stored export data with key:",
+            payload.sessionKey,
+          );
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("[Background] Failed to store export data:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : "Storage error",
+          });
+        }
         break;
       }
 

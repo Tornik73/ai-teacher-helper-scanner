@@ -25,6 +25,7 @@ export class WordwallExporter {
     title: string,
     templateType: WordwallTemplateType,
   ): Promise<void> {
+    console.log("[WordwallExporter] Starting export...");
     const template = WordwallTemplateFactory.getTemplate(templateType);
     const metadata = template.getMetadata();
     const formattedData = template.formatCards(cards, title);
@@ -36,24 +37,44 @@ export class WordwallExporter {
       timestamp: Date.now(),
     };
 
-    // Store data in local storage for the new tab to read
     const sessionKey = `wordwall_export_${Date.now()}`;
+    console.log("[WordwallExporter] Generated sessionKey:", sessionKey);
+
     try {
-      // Use chrome.storage.local as persistence layer
-      await chrome.storage.local.set({
-        [sessionKey]: {
+      // Request background worker to store the data
+      // This ensures storage completes before popup closes
+      console.log("[WordwallExporter] Sending store-export-data message...");
+      const response = await chrome.runtime.sendMessage({
+        action: "store-export-data",
+        payload: {
+          sessionKey,
           data: exportData,
           formatted: formattedData,
           templateId: metadata.templateId,
         },
       });
-    } catch {
+
+      console.log("[WordwallExporter] Storage response:", response);
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to store export data");
+      }
+      console.log("[WordwallExporter] Data stored successfully");
+    } catch (error) {
+      console.error("[WordwallExporter] Failed to store in chrome.storage.local:", error);
       // Fallback to localStorage
-      localStorage.setItem(sessionKey, JSON.stringify(exportData));
+      try {
+        console.log("[WordwallExporter] Falling back to localStorage...");
+        localStorage.setItem(sessionKey, JSON.stringify(exportData));
+        console.log("[WordwallExporter] Stored in localStorage");
+      } catch (e) {
+        console.error("[WordwallExporter] Failed to store in localStorage:", e);
+      }
     }
 
     // Open Wordwall create page
     const wordwallUrl = this.buildWordwallUrl(metadata.templateId, sessionKey);
+    console.log("[WordwallExporter] Opening Wordwall URL:", wordwallUrl);
     chrome.tabs.create({ url: wordwallUrl });
   }
 

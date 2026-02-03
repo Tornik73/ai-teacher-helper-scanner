@@ -23,35 +23,54 @@ function getSessionKeyFromUrl(): string | null {
 }
 
 async function getExportData(sessionKey: string): Promise<ExportData | null> {
-  return new Promise((resolve) => {
+  const maxRetries = 5;
+  const delayMs = 100;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      chrome.storage.local.get(sessionKey, (result) => {
-        if (chrome.runtime.lastError) {
-          debug("chrome.storage error:", chrome.runtime.lastError.message);
-        }
-        const entry = result[sessionKey];
-        if (entry && entry.data) {
-          resolve(entry.data as ExportData);
-        } else {
-          // Fallback to localStorage
-          try {
-            const stored = localStorage.getItem(sessionKey);
-            if (stored) {
-              resolve(JSON.parse(stored) as ExportData);
-              return;
-            }
-          } catch (e) {
-            /* ignore */
-          }
-          resolve(null);
-        }
+      debug(
+        `Attempt ${attempt + 1}/${maxRetries}: Requesting data from background worker...`,
+      );
+
+      const response = await chrome.runtime.sendMessage({
+        action: "get-export-data",
+        payload: sessionKey,
       });
+
+      if (response.success && response.data) {
+        debug(`Successfully retrieved data on attempt ${attempt + 1}`);
+        return response.data as ExportData;
+      } else {
+        debug(
+          `Attempt ${attempt + 1}: Background worker returned error:`,
+          response.error,
+        );
+      }
     } catch (e) {
-      // runtime may not be available in certain contexts
-      debug("Error reading storage", e);
-      resolve(null);
+      debug(`Attempt ${attempt + 1}: Error communicating with background worker:`, e);
     }
-  });
+
+    // Fallback to localStorage
+    try {
+      const stored = localStorage.getItem(sessionKey);
+      if (stored) {
+        debug("Retrieved data from localStorage as fallback");
+        return JSON.parse(stored) as ExportData;
+      }
+    } catch (e) {
+      debug("localStorage retrieval failed:", e);
+    }
+
+    // Wait before retrying (except on last attempt)
+    if (attempt < maxRetries - 1) {
+      const waitTime = delayMs * Math.pow(2, attempt);
+      debug(`Waiting ${waitTime}ms before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+  }
+
+  debug("Failed to retrieve export data after", maxRetries, "attempts");
+  return null;
 }
 
 function dispatchInput(
@@ -381,6 +400,10 @@ async function tryPopulateMatchingPair(
 }
 
 async function run() {
+  debug("Wordwall content script initializing...");
+  debug("Current URL:", window.location.href);
+  debug("Session storage contents:", Object.keys(sessionStorage));
+
   const sessionKey = getSessionKeyFromUrl();
   if (!sessionKey) {
     debug("No sessionKey in URL");
@@ -392,6 +415,8 @@ async function run() {
   const data = await getExportData(sessionKey);
   if (!data) {
     debug("No export data found for", sessionKey);
+    debug("Local storage keys:", Object.keys(localStorage));
+    debug("Session storage keys:", Object.keys(sessionStorage));
     return;
   }
 
@@ -439,7 +464,14 @@ if (
   document.readyState === "complete" ||
   document.readyState === "interactive"
 ) {
+  debug("Document already ready, scheduling run...");
   setTimeout(run, 500);
 } else {
-  window.addEventListener("DOMContentLoaded", () => setTimeout(run, 500));
+  debug("Waiting for DOMContentLoaded event...");
+  window.addEventListener("DOMContentLoaded", () => {
+    debug("DOMContentLoaded fired, scheduling run...");
+    setTimeout(run, 500);
+  });
 }
+
+debug("Content script loaded on:", window.location.href);
